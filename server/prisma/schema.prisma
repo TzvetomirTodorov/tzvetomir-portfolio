@@ -1,0 +1,67 @@
+// ═══════════════════════════════════════════════════════════════════
+//  TZVETOMIR.DEV — Database Schema
+//  PostgreSQL via Prisma ORM
+// ═══════════════════════════════════════════════════════════════════
+//
+//  This schema defines three core models for the portfolio:
+//    1. GuestbookEntry — Visitor-submitted messages (moderated)
+//    2. NewsletterSub  — Email subscribers for the blog/newsletter
+//    3. ContactMessage  — Contact form submissions
+//
+//  Run `npx prisma db push` to sync this schema to your database.
+//  Run `npx prisma generate` to regenerate the Prisma Client.
+//  Run `npx prisma studio` to browse your data visually.
+// ═══════════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Guestbook ──────────────────────────────────────────────────
+// Public-facing guestbook where visitors can leave short messages.
+// Messages are visible immediately but can be flagged/hidden by admin.
+model GuestbookEntry {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(80)       // Visitor's display name
+  message   String   @db.VarChar(200)      // Message body (200 char limit)
+  visible   Boolean  @default(true)        // Admin can hide offensive entries
+  createdAt DateTime @default(now())       // Timestamp of submission
+  ipHash    String?  @db.VarChar(64)       // SHA-256 hash of IP (for rate limiting, never stored raw)
+
+  @@map("guestbook_entries")               // PostgreSQL table name
+}
+
+// ─── Newsletter Subscribers ─────────────────────────────────────
+// Stores email subscriptions with double opt-in support.
+// The confirmToken is sent via email; once confirmed, confirmedAt is set.
+model NewsletterSub {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique @db.VarChar(255)  // Subscriber email (unique constraint)
+  confirmed    Boolean   @default(false)           // True after double opt-in confirmation
+  confirmToken String?   @db.VarChar(64)           // Token sent in confirmation email
+  unsubToken   String?   @db.VarChar(64)           // Token for one-click unsubscribe
+  confirmedAt  DateTime?                            // When they confirmed
+  createdAt    DateTime  @default(now())            // When they first subscribed
+  unsubAt      DateTime?                            // When they unsubscribed (soft delete)
+
+  @@map("newsletter_subscribers")
+}
+
+// ─── Contact Form ───────────────────────────────────────────────
+// Contact form submissions — stored in DB and optionally forwarded via email.
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)      // Sender's name
+  email     String   @db.VarChar(255)      // Sender's email for reply
+  subject   String   @db.VarChar(200)      // Message subject
+  message   String   @db.Text              // Full message body
+  read      Boolean  @default(false)       // Admin read status
+  createdAt DateTime @default(now())       // Submission timestamp
+
+  @@map("contact_messages")
+}

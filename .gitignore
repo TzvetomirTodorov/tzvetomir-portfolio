@@ -1,0 +1,33 @@
+# ═══════════════════════════════════════════════════════════════════
+#  tzvetomir.dev — .gitignore
+# ═══════════════════════════════════════════════════════════════════
+
+# Dependencies
+node_modules/
+
+# Environment variables (NEVER commit these)
+.env
+.env.local
+.env.production
+
+# Build outputs
+client/dist/
+server/dist/
+
+# Prisma
+server/prisma/migrations/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Vercel
+.vercel/
