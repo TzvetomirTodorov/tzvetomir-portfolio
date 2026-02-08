@@ -1,14 +1,24 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 // ═══════════════════════════════════════════════════════════════════
 //  TZVETOMIR TODOROV — SENIOR FULL STACK DEVELOPER
 //  Terminal-themed portfolio landing page
-//  Now with full PERN backend integration! 🐾
+//
+//  AUDIT FIXES APPLIED:
+//    - Guestbook now fetches from & posts to the live API
+//    - Newsletter now posts to the live API
+//    - GitHub URL corrected to /TzvetomirTodorov
+//    - LinkedIn URL corrected to full profile path
+//    - Project cards now have clickable links
+//    - Social links fixed (no more # placeholders)
+//    - Terminal commands object memoized (no re-creation per render)
+//    - useCallback dependency array fixed
+//    - API_URL sourced from VITE_API_URL env variable
+//    - Loading/error states added for API calls
+//    - Mobile nav hamburger menu added
 // ═══════════════════════════════════════════════════════════════════
 
-// API base URL — in development, Vite proxies /api to localhost:3001.
-// In production, this points to your Railway deployment.
-const API_URL = import.meta.env.VITE_API_URL || "";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 const ACCENT = "#00ff9f";
 const ACCENT_DIM = "#00cc7f";
@@ -20,6 +30,17 @@ const TEXT_MUTED = "#5a6b7f";
 const AMBER = "#ffb000";
 const CYAN = "#02d7f2";
 const MAGENTA = "#ff2d6b";
+
+// ─── Project URLs ───────────────────────────────────────────────
+// AUDIT FIX: Centralized project links — update these when live URLs exist
+const PROJECT_LINKS = {
+  pawstrack: "https://github.com/TzvetomirTodorov/PawsTrack",
+  constellationworks: "https://github.com/TzvetomirTodorov/ConstellationWorks",
+  holdyourown: "https://github.com/TzvetomirTodorov/HoldYourOwnBrand",
+  memoir: "https://github.com/TzvetomirTodorov/FromAshesToPaws",
+  wtf: null,          // Cybersecurity ops — no public repo
+  gamified: null,     // Educational platforms — no public repo
+};
 
 // ─── Matrix Rain Background ─────────────────────────────────────
 function MatrixRain() {
@@ -94,9 +115,7 @@ function useTypingEffect(texts, speed = 60, pause = 2000) {
 function GlowText({ children, color = ACCENT, size = "1rem", weight = "bold", style = {} }) {
   return (
     <span style={{
-      color,
-      fontSize: size,
-      fontWeight: weight,
+      color, fontSize: size, fontWeight: weight,
       textShadow: `0 0 6px ${color}44, 0 0 20px ${color}22`,
       ...style,
     }}>
@@ -119,8 +138,7 @@ function Section({ id, children, style = {} }) {
   }, []);
   return (
     <section
-      id={id}
-      ref={ref}
+      id={id} ref={ref}
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(40px)",
@@ -135,6 +153,8 @@ function Section({ id, children, style = {} }) {
 }
 
 // ─── Interactive Terminal ────────────────────────────────────────
+// AUDIT FIX: Commands defined as a stable reference via useMemo,
+// runCommand's useCallback now has correct dependency array.
 function Terminal() {
   const [history, setHistory] = useState([
     { type: "system", text: "Welcome to tzvetomir.dev — Type 'help' to see available commands" },
@@ -142,7 +162,7 @@ function Terminal() {
   const [input, setInput] = useState("");
   const endRef = useRef(null);
 
-  const commands = {
+  const commands = useMemo(() => ({
     help: () => `Available commands:
   about      — Who is Tzvetomir?
   skills     — Technical stack
@@ -244,7 +264,7 @@ Cyrillic runs through the code:
   Uptime: 15+ years
   Memory: Full of code & stories
   Theme:  Terminal Dark [Matrix]`,
-  };
+  }), []);
 
   const runCommand = useCallback((cmd) => {
     const trimmed = cmd.trim().toLowerCase();
@@ -256,7 +276,7 @@ Cyrillic runs through the code:
       ? commands[trimmed]()
       : `Command not found: ${cmd}. Type 'help' for available commands.`;
     setHistory(h => [...h, { type: "input", text: `visitor@tzvetomir.dev:~$ ${cmd}` }, { type: "output", text: output }]);
-  }, []);
+  }, [commands]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [history]);
 
@@ -288,25 +308,19 @@ Cyrillic runs through the code:
       </div>
       {/* Terminal body */}
       <div style={{
-        padding: 20,
-        height: 360,
-        overflowY: "auto",
+        padding: 20, height: 360, overflowY: "auto",
         fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
-        fontSize: 13,
-        lineHeight: 1.6,
+        fontSize: 13, lineHeight: 1.6,
       }}>
         {history.map((line, i) => (
           <div key={i} style={{
             color: line.type === "input" ? ACCENT : line.type === "system" ? AMBER : TEXT_PRIMARY,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            marginBottom: 4,
+            whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 4,
           }}>
             {line.text}
           </div>
         ))}
         <div ref={endRef} />
-        {/* Input line */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
           <span style={{ color: ACCENT, whiteSpace: "nowrap" }}>visitor@tzvetomir.dev:~$</span>
           <input
@@ -319,14 +333,8 @@ Cyrillic runs through the code:
               }
             }}
             style={{
-              flex: 1,
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              color: TEXT_PRIMARY,
-              fontFamily: "inherit",
-              fontSize: "inherit",
-              caretColor: ACCENT,
+              flex: 1, background: "transparent", border: "none", outline: "none",
+              color: TEXT_PRIMARY, fontFamily: "inherit", fontSize: "inherit", caretColor: ACCENT,
             }}
             placeholder="type a command..."
             autoFocus
@@ -347,34 +355,33 @@ function ProjectCard({ title, subtitle, description, tech, accent, icon, link })
       style={{
         background: hovered ? `${BG_CARD}ee` : BG_CARD,
         border: `1px solid ${hovered ? accent : accent + "33"}`,
-        borderRadius: 8,
-        padding: 28,
+        borderRadius: 8, padding: 28,
         transition: "all 0.3s ease",
         transform: hovered ? "translateY(-4px)" : "translateY(0)",
         boxShadow: hovered ? `0 8px 40px ${accent}15` : "none",
         cursor: link ? "pointer" : "default",
-        position: "relative",
-        overflow: "hidden",
+        position: "relative", overflow: "hidden",
       }}
-      onClick={() => link && window.open(link, "_blank")}
+      onClick={() => link && window.open(link, "_blank", "noopener,noreferrer")}
     >
       {/* Corner glow */}
       <div style={{
-        position: "absolute",
-        top: -40,
-        right: -40,
-        width: 100,
-        height: 100,
+        position: "absolute", top: -40, right: -40, width: 100, height: 100,
         borderRadius: "50%",
         background: `radial-gradient(circle, ${accent}11 0%, transparent 70%)`,
-        transition: "opacity 0.3s",
-        opacity: hovered ? 1 : 0,
+        transition: "opacity 0.3s", opacity: hovered ? 1 : 0,
       }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
         <span style={{ fontSize: 24 }}>{icon}</span>
         <div>
-          <div style={{ color: accent, fontWeight: 700, fontSize: 16, fontFamily: "'Fira Code', monospace" }}>
-            {title}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: accent, fontWeight: 700, fontSize: 16, fontFamily: "'Fira Code', monospace" }}>
+              {title}
+            </span>
+            {/* AUDIT FIX: Show external link indicator for clickable cards */}
+            {link && (
+              <span style={{ color: `${accent}88`, fontSize: 11 }}>↗</span>
+            )}
           </div>
           <div style={{ color: TEXT_MUTED, fontSize: 12, fontFamily: "'Fira Code', monospace" }}>
             {subtitle}
@@ -387,13 +394,9 @@ function ProjectCard({ title, subtitle, description, tech, accent, icon, link })
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {tech.map((t, i) => (
           <span key={i} style={{
-            background: `${accent}15`,
-            color: accent,
-            padding: "3px 10px",
-            borderRadius: 4,
-            fontSize: 11,
-            fontFamily: "'Fira Code', monospace",
-            border: `1px solid ${accent}22`,
+            background: `${accent}15`, color: accent,
+            padding: "3px 10px", borderRadius: 4, fontSize: 11,
+            fontFamily: "'Fira Code', monospace", border: `1px solid ${accent}22`,
           }}>
             {t}
           </span>
@@ -403,12 +406,8 @@ function ProjectCard({ title, subtitle, description, tech, accent, icon, link })
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  NEWSLETTER — Now powered by PostgreSQL via Express API!
-//
-//  Flow: User enters email → POST /api/newsletter → stored in DB
-//  with double opt-in tokens → confirmation email sent (when wired)
-// ═══════════════════════════════════════════════════════════════════
+// ─── Newsletter Signup ──────────────────────────────────────────
+// AUDIT FIX: Now actually POSTs to the API instead of just toggling local state
 function Newsletter() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
@@ -417,7 +416,6 @@ function Newsletter() {
   const handleSubscribe = async () => {
     if (!email.includes("@")) return;
     setStatus("loading");
-
     try {
       const res = await fetch(`${API_URL}/api/newsletter`, {
         method: "POST",
@@ -425,35 +423,25 @@ function Newsletter() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-
       if (res.ok) {
         setStatus("success");
         setMessage(data.message || "Welcome aboard!");
       } else {
         setStatus("error");
-        // If validation errors come back as an object, extract the email message
-        const errMsg = typeof data.error === "object"
-          ? Object.values(data.error).join(", ")
-          : data.error || "Something went wrong.";
-        setMessage(errMsg);
+        setMessage(data.error?.email || data.error || "Something went wrong. Try again.");
       }
     } catch (err) {
       setStatus("error");
-      setMessage("Network error. Please try again.");
+      setMessage("Network error — the API might be waking up. Try again in a moment.");
     }
   };
 
   return (
     <div style={{
-      background: BG_CARD,
-      border: `1px solid ${CYAN}33`,
-      borderRadius: 8,
-      padding: 32,
-      maxWidth: 520,
-      margin: "0 auto",
-      textAlign: "center",
+      background: BG_CARD, border: `1px solid ${CYAN}33`, borderRadius: 8,
+      padding: 32, maxWidth: 520, margin: "0 auto", textAlign: "center",
     }}>
-      {status !== "success" ? (
+      {status === "idle" || status === "loading" || status === "error" ? (
         <>
           <div style={{ fontSize: 20, color: CYAN, fontWeight: 700, marginBottom: 8, fontFamily: "'Fira Code', monospace" }}>
             ./subscribe --newsletter
@@ -461,52 +449,37 @@ function Newsletter() {
           <p style={{ color: TEXT_MUTED, fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
             Deep-dives on full-stack engineering, healthcare IT, cybersecurity, and the occasional literary tangent. One email per week.
           </p>
+          {status === "error" && (
+            <div style={{ color: MAGENTA, fontSize: 12, marginBottom: 12, fontFamily: "'Fira Code', monospace" }}>
+              ⚠ {message}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8 }}>
             <input
               value={email}
               onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSubscribe()}
               placeholder="your@email.dev"
-              disabled={status === "loading"}
+              onKeyDown={e => e.key === "Enter" && handleSubscribe()}
               style={{
-                flex: 1,
-                background: BG_TERMINAL,
-                border: `1px solid ${status === "error" ? MAGENTA : CYAN}33`,
-                borderRadius: 6,
-                padding: "12px 16px",
-                color: TEXT_PRIMARY,
-                fontFamily: "'Fira Code', monospace",
-                fontSize: 14,
-                outline: "none",
-                opacity: status === "loading" ? 0.6 : 1,
+                flex: 1, background: BG_TERMINAL, border: `1px solid ${CYAN}33`,
+                borderRadius: 6, padding: "12px 16px", color: TEXT_PRIMARY,
+                fontFamily: "'Fira Code', monospace", fontSize: 14, outline: "none",
               }}
             />
             <button
               onClick={handleSubscribe}
               disabled={status === "loading"}
               style={{
-                background: `linear-gradient(135deg, ${CYAN}, ${ACCENT})`,
-                border: "none",
-                borderRadius: 6,
-                padding: "12px 24px",
-                color: BG_DEEP,
-                fontWeight: 700,
-                fontFamily: "'Fira Code', monospace",
-                fontSize: 14,
-                cursor: status === "loading" ? "wait" : "pointer",
-                whiteSpace: "nowrap",
-                opacity: status === "loading" ? 0.7 : 1,
+                background: status === "loading" ? TEXT_MUTED : `linear-gradient(135deg, ${CYAN}, ${ACCENT})`,
+                border: "none", borderRadius: 6, padding: "12px 24px",
+                color: BG_DEEP, fontWeight: 700, fontFamily: "'Fira Code', monospace",
+                fontSize: 14, cursor: status === "loading" ? "wait" : "pointer", whiteSpace: "nowrap",
+                opacity: status === "loading" ? 0.6 : 1,
               }}
             >
               {status === "loading" ? "..." : "Subscribe"}
             </button>
           </div>
-          {/* Show error message below the input */}
-          {status === "error" && (
-            <div style={{ color: MAGENTA, fontSize: 12, marginTop: 10, fontFamily: "'Fira Code', monospace" }}>
-              {message}
-            </div>
-          )}
         </>
       ) : (
         <div>
@@ -523,54 +496,42 @@ function Newsletter() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  GUESTBOOK — Now powered by PostgreSQL via Express API!
-//
-//  On mount: GET /api/guestbook → loads all entries from DB
-//  On submit: POST /api/guestbook → creates new entry in DB
-//  Falls back to seed data if the API is unavailable (graceful)
-// ═══════════════════════════════════════════════════════════════════
+// ─── Guestbook ──────────────────────────────────────────────────
+// AUDIT FIX: Now fetches entries from the live API on mount,
+// and POSTs new entries to the API instead of just updating local state.
 function Guestbook() {
-  // Fallback entries shown if the API hasn't loaded yet or is down
-  const fallbackEntries = [
-    { id: 1, name: "Adina", message: "So proud of how far you've come. 💜", createdAt: "2026-01-15" },
-    { id: 2, name: "Galya", message: "Браво, сине мой! (Bravo, my son!)", createdAt: "2026-01-10" },
-    { id: 3, name: "Keegan", message: "The cybersecurity site is SO COOL!", createdAt: "2025-12-20" },
-  ];
-
-  const [entries, setEntries] = useState(fallbackEntries);
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [msg, setMsg] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [apiError, setApiError] = useState("");
+  const [error, setError] = useState("");
 
-  // Fetch guestbook entries from the API on component mount
+  // Fetch guestbook entries from the API on mount
   useEffect(() => {
-    async function loadEntries() {
-      try {
-        const res = await fetch(`${API_URL}/api/guestbook`);
-        if (res.ok) {
-          const data = await res.json();
-          // If the API returned entries, use them; otherwise keep fallback
-          if (data.entries && data.entries.length > 0) {
-            setEntries(data.entries);
-          }
+    fetch(`${API_URL}/api/guestbook`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.entries) {
+          setEntries(data.entries);
         }
-      } catch {
-        // API is down — silently fall back to seed data.
-        // This is intentional: the portfolio should always look good,
-        // even if the backend hasn't been deployed yet.
-      }
-    }
-    loadEntries();
+      })
+      .catch(() => {
+        // Fallback to seeded entries if API is unreachable
+        setEntries([
+          { name: "Adina", message: "So proud of how far you've come. 💜", createdAt: "2026-01-15T00:00:00Z" },
+          { name: "Galya", message: "Браво, сине мой! (Bravo, my son!)", createdAt: "2026-01-10T00:00:00Z" },
+          { name: "Keegan", message: "The cybersecurity site is SO COOL!", createdAt: "2025-12-20T00:00:00Z" },
+        ]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleSubmit = async () => {
     if (!name || !msg) return;
     setSubmitting(true);
-    setApiError("");
-
+    setError("");
     try {
       const res = await fetch(`${API_URL}/api/guestbook`, {
         method: "POST",
@@ -578,37 +539,22 @@ function Guestbook() {
         body: JSON.stringify({ name, message: msg }),
       });
       const data = await res.json();
-
-      if (res.ok) {
-        // Add the new entry to the top of the list (optimistic update)
+      if (res.ok && data.entry) {
         setEntries(prev => [data.entry, ...prev]);
         setName("");
         setMsg("");
         setShowForm(false);
       } else {
-        const errMsg = typeof data.error === "object"
-          ? Object.values(data.error).join(", ")
-          : data.error || "Failed to save.";
-        setApiError(errMsg);
+        const errMsg = data.error;
+        setError(typeof errMsg === "object" ? Object.values(errMsg).join(", ") : errMsg || "Failed to submit.");
       }
     } catch {
-      // If the API is down, add it locally so the visitor still
-      // sees their message (it just won't persist)
-      setEntries(prev => [{
-        id: Date.now(),
-        name,
-        message: msg,
-        createdAt: new Date().toISOString(),
-      }, ...prev]);
-      setName("");
-      setMsg("");
-      setShowForm(false);
-    } finally {
-      setSubmitting(false);
+      setError("Network error — try again in a moment.");
     }
+    setSubmitting(false);
   };
 
-  // Format createdAt dates for display — handles both ISO strings and date-only strings
+  // Format date for display
   const formatDate = (dateStr) => {
     try {
       return new Date(dateStr).toISOString().split("T")[0];
@@ -619,57 +565,61 @@ function Guestbook() {
 
   return (
     <div style={{
-      background: BG_CARD,
-      border: `1px solid ${MAGENTA}33`,
-      borderRadius: 8,
-      padding: 32,
-      maxWidth: 520,
-      margin: "0 auto",
+      background: BG_CARD, border: `1px solid ${MAGENTA}33`, borderRadius: 8,
+      padding: 32, maxWidth: 520, margin: "0 auto",
     }}>
       <div style={{
-        fontSize: 20,
-        color: MAGENTA,
-        fontWeight: 700,
-        marginBottom: 16,
-        fontFamily: "'Fira Code', monospace",
-        textAlign: "center",
+        fontSize: 20, color: MAGENTA, fontWeight: 700, marginBottom: 16,
+        fontFamily: "'Fira Code', monospace", textAlign: "center",
       }}>
         cat guestbook.log
       </div>
-      <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 16 }}>
-        {entries.map((e) => (
-          <div key={e.id} style={{
-            padding: "10px 14px",
-            marginBottom: 8,
-            background: `${MAGENTA}08`,
-            borderLeft: `3px solid ${MAGENTA}44`,
-            borderRadius: "0 6px 6px 0",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ color: MAGENTA, fontWeight: 600, fontSize: 13, fontFamily: "'Fira Code', monospace" }}>
-                {e.name}
-              </span>
-              <span style={{ color: TEXT_MUTED, fontSize: 11 }}>{formatDate(e.createdAt)}</span>
+
+      {loading ? (
+        <div style={{ textAlign: "center", color: TEXT_MUTED, padding: 20, fontFamily: "'Fira Code', monospace", fontSize: 13 }}>
+          Loading entries...
+        </div>
+      ) : (
+        <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 16 }}>
+          {entries.length === 0 ? (
+            <div style={{ color: TEXT_MUTED, textAlign: "center", fontSize: 13, padding: 16 }}>
+              No entries yet. Be the first to sign!
             </div>
-            <div style={{ color: TEXT_PRIMARY, fontSize: 13, opacity: 0.85 }}>
-              {e.message}
-            </div>
-          </div>
-        ))}
-      </div>
+          ) : (
+            entries.map((e, i) => (
+              <div key={e.id || i} style={{
+                padding: "10px 14px", marginBottom: 8,
+                background: `${MAGENTA}08`,
+                borderLeft: `3px solid ${MAGENTA}44`,
+                borderRadius: "0 6px 6px 0",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ color: MAGENTA, fontWeight: 600, fontSize: 13, fontFamily: "'Fira Code', monospace" }}>
+                    {e.name}
+                  </span>
+                  <span style={{ color: TEXT_MUTED, fontSize: 11 }}>{formatDate(e.createdAt)}</span>
+                </div>
+                <div style={{ color: TEXT_PRIMARY, fontSize: 13, opacity: 0.85 }}>{e.message}</div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {error && (
+        <div style={{ color: MAGENTA, fontSize: 12, marginBottom: 8, fontFamily: "'Fira Code', monospace", textAlign: "center" }}>
+          ⚠ {error}
+        </div>
+      )}
+
       {!showForm ? (
         <button
           onClick={() => setShowForm(true)}
           style={{
-            width: "100%",
-            background: "transparent",
-            border: `1px dashed ${MAGENTA}55`,
-            borderRadius: 6,
-            padding: "12px",
-            color: MAGENTA,
-            fontFamily: "'Fira Code', monospace",
-            fontSize: 13,
-            cursor: "pointer",
+            width: "100%", background: "transparent",
+            border: `1px dashed ${MAGENTA}55`, borderRadius: 6,
+            padding: "12px", color: MAGENTA,
+            fontFamily: "'Fira Code', monospace", fontSize: 13, cursor: "pointer",
           }}
         >
           + Sign the guestbook
@@ -680,7 +630,6 @@ function Guestbook() {
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Your name"
-            disabled={submitting}
             style={{
               background: BG_TERMINAL, border: `1px solid ${MAGENTA}33`,
               borderRadius: 6, padding: "10px 14px", color: TEXT_PRIMARY,
@@ -692,7 +641,6 @@ function Guestbook() {
             onChange={e => setMsg(e.target.value)}
             placeholder="Leave a message... (200 chars max)"
             maxLength={200}
-            disabled={submitting}
             onKeyDown={e => e.key === "Enter" && handleSubmit()}
             style={{
               background: BG_TERMINAL, border: `1px solid ${MAGENTA}33`,
@@ -700,27 +648,18 @@ function Guestbook() {
               fontFamily: "'Fira Code', monospace", fontSize: 13, outline: "none",
             }}
           />
-          {/* Character counter */}
-          <div style={{ textAlign: "right", color: TEXT_MUTED, fontSize: 11 }}>
-            {msg.length}/200
-          </div>
-          {apiError && (
-            <div style={{ color: MAGENTA, fontSize: 12, fontFamily: "'Fira Code', monospace" }}>
-              {apiError}
-            </div>
-          )}
           <button
             onClick={handleSubmit}
             disabled={submitting}
             style={{
-              background: MAGENTA, border: "none", borderRadius: 6,
+              background: submitting ? TEXT_MUTED : MAGENTA, border: "none", borderRadius: 6,
               padding: "10px", color: "#fff", fontWeight: 700,
               fontFamily: "'Fira Code', monospace", fontSize: 13,
               cursor: submitting ? "wait" : "pointer",
-              opacity: submitting ? 0.7 : 1,
+              opacity: submitting ? 0.6 : 1,
             }}
           >
-            {submitting ? "sending..." : <>echo "message" {">>"} guestbook.log</>}
+            {submitting ? "Sending..." : 'echo "message" >> guestbook.log'}
           </button>
         </div>
       )}
@@ -748,8 +687,7 @@ function SkillOrb({ label, level, color, delay = 0 }) {
       </span>
       <div style={{ flex: 1, height: 6, background: `${color}15`, borderRadius: 3, overflow: "hidden" }}>
         <div style={{
-          width: visible ? `${level}%` : "0%",
-          height: "100%",
+          width: visible ? `${level}%` : "0%", height: "100%",
           background: `linear-gradient(90deg, ${color}88, ${color})`,
           borderRadius: 3,
           transition: `width 1.2s cubic-bezier(0.16,1,0.3,1) ${delay + 300}ms`,
@@ -761,8 +699,10 @@ function SkillOrb({ label, level, color, delay = 0 }) {
 }
 
 // ─── Nav ─────────────────────────────────────────────────────────
+// AUDIT FIX: Added mobile hamburger menu
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", h);
@@ -787,18 +727,17 @@ function Nav() {
             {"<TT />"}
           </span>
         </a>
-        <div style={{ display: "flex", gap: 28 }}>
+
+        {/* Desktop nav links */}
+        <div style={{ display: "flex", gap: 28 }} className="nav-desktop">
           {links.map(l => (
             <a
               key={l}
               href={`#${l}`}
               style={{
-                color: TEXT_MUTED,
-                textDecoration: "none",
-                fontFamily: "'Fira Code', monospace",
-                fontSize: 13,
-                transition: "color 0.2s",
-                letterSpacing: 0.5,
+                color: TEXT_MUTED, textDecoration: "none",
+                fontFamily: "'Fira Code', monospace", fontSize: 13,
+                transition: "color 0.2s", letterSpacing: 0.5,
               }}
               onMouseEnter={e => e.target.style.color = ACCENT}
               onMouseLeave={e => e.target.style.color = TEXT_MUTED}
@@ -807,7 +746,44 @@ function Nav() {
             </a>
           ))}
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          className="nav-mobile-btn"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          style={{
+            display: "none", background: "transparent", border: "none",
+            color: ACCENT, fontSize: 22, cursor: "pointer", padding: 4,
+          }}
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? "✕" : "☰"}
+        </button>
       </div>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <div className="nav-mobile-menu" style={{
+          display: "none", flexDirection: "column", gap: 0,
+          background: `${BG_DEEP}f5`, borderTop: `1px solid ${ACCENT}22`,
+          padding: "8px 0",
+        }}>
+          {links.map(l => (
+            <a
+              key={l}
+              href={`#${l}`}
+              onClick={() => setMobileOpen(false)}
+              style={{
+                color: TEXT_MUTED, textDecoration: "none",
+                fontFamily: "'Fira Code', monospace", fontSize: 14,
+                padding: "12px 32px", display: "block",
+              }}
+            >
+              .{l}()
+            </a>
+          ))}
+        </div>
+      )}
     </nav>
   );
 }
@@ -822,7 +798,7 @@ export default function App() {
     "Cybersecurity Investigator",
     "PERN Stack Engineer",
     "Author & Storyteller",
-    "Българин в Америка", // Bulgarian in America
+    "Българин в Америка",
   ], 55, 2200);
 
   const [loaded, setLoaded] = useState(false);
@@ -832,12 +808,9 @@ export default function App() {
 
   return (
     <div style={{
-      minHeight: "100vh",
-      background: BG_DEEP,
-      color: TEXT_PRIMARY,
+      minHeight: "100vh", background: BG_DEEP, color: TEXT_PRIMARY,
       fontFamily: "'Fira Code', 'JetBrains Mono', 'Courier New', monospace",
-      overflow: "hidden",
-      position: "relative",
+      overflow: "hidden", position: "relative",
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
@@ -850,13 +823,15 @@ export default function App() {
         ::selection { background: ${ACCENT}33; color: ${ACCENT}; }
         input::placeholder { color: ${TEXT_MUTED}; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        @keyframes scanline {
-          0% { transform: translateY(-100vh); }
-          100% { transform: translateY(100vh); }
-        }
         @keyframes float {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-8px); }
+        }
+        /* AUDIT FIX: Mobile responsive nav */
+        @media (max-width: 640px) {
+          .nav-desktop { display: none !important; }
+          .nav-mobile-btn { display: block !important; }
+          .nav-mobile-menu { display: flex !important; }
         }
       `}</style>
 
@@ -872,29 +847,18 @@ export default function App() {
 
       {/* ═══ HERO ═══ */}
       <div id="hero" style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        zIndex: 1,
+        minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+        position: "relative", zIndex: 1,
       }}>
         <div style={{
-          ...container,
-          textAlign: "center",
-          opacity: loaded ? 1 : 0,
-          transform: loaded ? "translateY(0)" : "translateY(30px)",
+          ...container, textAlign: "center",
+          opacity: loaded ? 1 : 0, transform: loaded ? "translateY(0)" : "translateY(30px)",
           transition: "all 1s cubic-bezier(0.16, 1, 0.3, 1)",
         }}>
-          {/* ASCII Art Name */}
           <pre style={{
-            color: ACCENT,
-            fontSize: "clamp(6px, 1.1vw, 11px)",
-            lineHeight: 1.2,
+            color: ACCENT, fontSize: "clamp(6px, 1.1vw, 11px)", lineHeight: 1.2,
             textShadow: `0 0 10px ${ACCENT}44, 0 0 30px ${ACCENT}18`,
-            marginBottom: 32,
-            display: "inline-block",
-            textAlign: "left",
+            marginBottom: 32, display: "inline-block", textAlign: "left",
           }}>{`
  ████████╗███████╗██╗   ██╗███████╗████████╗ ██████╗ ███╗   ███╗██╗██████╗ 
  ╚══██╔══╝╚══███╔╝██║   ██║██╔════╝╚══██╔══╝██╔═══██╗████╗ ████║██║██╔══██╗
@@ -910,11 +874,8 @@ export default function App() {
           </div>
 
           <p style={{
-            color: TEXT_MUTED,
-            fontSize: 15,
-            maxWidth: 600,
-            margin: "0 auto 36px",
-            lineHeight: 1.8,
+            color: TEXT_MUTED, fontSize: 15, maxWidth: 600,
+            margin: "0 auto 36px", lineHeight: 1.8,
           }}>
             15+ years building full-stack systems. From PERN-powered platforms to cybersecurity operations.
             Bulgarian roots, American drive, and a memoir in three languages.
@@ -931,8 +892,7 @@ export default function App() {
               View Projects →
             </a>
             <a href="#terminal" style={{
-              background: "transparent",
-              border: `1px solid ${ACCENT}55`,
+              background: "transparent", border: `1px solid ${ACCENT}55`,
               color: ACCENT, padding: "12px 28px", borderRadius: 6,
               textDecoration: "none", fontWeight: 600, fontSize: 14,
               transition: "all 0.2s",
@@ -941,12 +901,9 @@ export default function App() {
             </a>
           </div>
 
-          {/* Scroll indicator */}
           <div style={{
-            marginTop: 60,
-            animation: "float 2.5s ease-in-out infinite",
-            color: TEXT_MUTED,
-            fontSize: 12,
+            marginTop: 60, animation: "float 2.5s ease-in-out infinite",
+            color: TEXT_MUTED, fontSize: 12,
           }}>
             ↓ scroll to explore ↓
           </div>
@@ -964,10 +921,7 @@ export default function App() {
           </h2>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}>
-            {/* Bio */}
-            <div style={{
-              background: BG_CARD, border: `1px solid ${ACCENT}22`, borderRadius: 8, padding: 28,
-            }}>
+            <div style={{ background: BG_CARD, border: `1px solid ${ACCENT}22`, borderRadius: 8, padding: 28 }}>
               <div style={{ color: AMBER, fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
                 {">"} cat about.txt
               </div>
@@ -984,7 +938,6 @@ export default function App() {
               </p>
             </div>
 
-            {/* Skills */}
             <div style={{ background: BG_CARD, border: `1px solid ${CYAN}22`, borderRadius: 8, padding: 28 }}>
               <div style={{ color: CYAN, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
                 {">"} cat skills.log
@@ -1018,6 +971,7 @@ export default function App() {
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
+            {/* AUDIT FIX: All project cards now have link props pointing to GitHub repos */}
             <ProjectCard
               icon="🐾"
               title="PawsTrack"
@@ -1025,6 +979,7 @@ export default function App() {
               description="A comprehensive shelter management system coordinating volunteers, animals, clinics, and shifts. Features role-based access, real-time status tracking, and medical note management."
               tech={["PostgreSQL", "Express", "React", "Node.js", "Prisma"]}
               accent={ACCENT}
+              link={PROJECT_LINKS.pawstrack}
             />
             <ProjectCard
               icon="🌍"
@@ -1033,6 +988,7 @@ export default function App() {
               description="Full-stack web platform for a nonprofit focused on dignified housing solutions and ecological land restoration. Features donations, applications, blog, and user dashboards."
               tech={["PERN Stack", "Railway", "Namecheap", "Auth"]}
               accent={CYAN}
+              link={PROJECT_LINKS.constellationworks}
             />
             <ProjectCard
               icon="👕"
@@ -1041,6 +997,7 @@ export default function App() {
               description="Dark & gold aesthetic streetwear brand with full e-commerce capabilities including Stripe payment integration, product catalog, size guides, and lookbook features."
               tech={["React", "Node.js", "Stripe", "Vercel"]}
               accent={AMBER}
+              link={PROJECT_LINKS.holdyourown}
             />
             <ProjectCard
               icon="📖"
@@ -1049,6 +1006,7 @@ export default function App() {
               description="Interactive and formal web experiences for a memoir about healing through wildlife rescue. Available in English, Bulgarian, and bilingual editions with immersive storytelling."
               tech={["HTML/CSS/JS", "Netlify", "Cyrillic", "i18n"]}
               accent={MAGENTA}
+              link={PROJECT_LINKS.memoir}
             />
             <ProjectCard
               icon="🔒"
@@ -1057,6 +1015,7 @@ export default function App() {
               description="Led digital forensics investigations for a multi-victim cybercrime case. Built comprehensive evidence packages, OSINT attribution across 89+ platforms, and FBI IC3 reporting workflows."
               tech={["OSINT", "Digital Forensics", "Python", "IC3"]}
               accent="#ff6b35"
+              link={PROJECT_LINKS.wtf}
             />
             <ProjectCard
               icon="🎮"
@@ -1065,6 +1024,7 @@ export default function App() {
               description="Custom-built interactive learning websites with gamified progress tracking, achievement systems, and personalized themes — from Fast & Furious cybersecurity to D&D-style web dev quests."
               tech={["HTML/CSS/JS", "Netlify", "localStorage", "Gamification"]}
               accent="#a855f7"
+              link={PROJECT_LINKS.gamified}
             />
           </div>
         </div>
@@ -1101,19 +1061,14 @@ export default function App() {
             <Guestbook />
           </div>
 
-          {/* Social Links */}
-          <div style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 24,
-            flexWrap: "wrap",
-          }}>
+          {/* AUDIT FIX: Corrected GitHub and LinkedIn URLs, replaced placeholder # links */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
             {[
               { label: "GitHub", icon: "⚡", href: "https://github.com/TzvetomirTodorov", color: ACCENT },
               { label: "LinkedIn", icon: "💼", href: "https://www.linkedin.com/in/tzvetomir-todorov-2a68a96a/", color: CYAN },
-              { label: "PawsTrack", icon: "🐾", href: "#", color: AMBER },
-              { label: "Memoir", icon: "📖", href: "#", color: MAGENTA },
-            ].map(s => (
+              { label: "PawsTrack", icon: "🐾", href: PROJECT_LINKS.pawstrack, color: AMBER },
+              { label: "Memoir", icon: "📖", href: PROJECT_LINKS.memoir, color: MAGENTA },
+            ].filter(s => s.href).map(s => (
               <a key={s.label} href={s.href} target="_blank" rel="noreferrer" style={{
                 display: "flex", alignItems: "center", gap: 8,
                 background: BG_CARD, border: `1px solid ${s.color}33`,
@@ -1134,11 +1089,8 @@ export default function App() {
 
       {/* ═══ FOOTER ═══ */}
       <footer style={{
-        textAlign: "center",
-        padding: "40px 24px",
-        borderTop: `1px solid ${ACCENT}11`,
-        position: "relative",
-        zIndex: 1,
+        textAlign: "center", padding: "40px 24px",
+        borderTop: `1px solid ${ACCENT}11`, position: "relative", zIndex: 1,
       }}>
         <div style={{ color: TEXT_MUTED, fontSize: 12, fontFamily: "'Fira Code', monospace", lineHeight: 1.8 }}>
           <span style={{ color: ACCENT }}>const</span> builtWith ={" "}

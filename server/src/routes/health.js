@@ -6,17 +6,13 @@
 
 const express = require("express");
 const router = express.Router();
-const { PrismaClient } = require("@prisma/client");
-
-const prisma = new PrismaClient();
+const prisma = require("../utils/prisma");   // AUDIT FIX: shared instance
 
 // GET /api/health
-// Returns: { status, timestamp, uptime, database }
 router.get("/", async (req, res) => {
   let dbStatus = "unknown";
 
   try {
-    // Quick query to verify database connectivity
     await prisma.$queryRaw`SELECT 1`;
     dbStatus = "connected";
   } catch (err) {

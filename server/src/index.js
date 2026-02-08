@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
 //  TZVETOMIR.DEV — Express API Server
 //
-//  This is the main entry point for the backend API. It sets up:
+//  Main entry point for the backend API. Sets up:
 //    1. Express with JSON parsing and CORS
 //    2. General rate limiting on all /api routes
 //    3. Individual route handlers (guestbook, newsletter, contact)
@@ -14,7 +14,7 @@
 
 const express = require("express");
 const cors = require("cors");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("./utils/prisma");                  // AUDIT FIX: shared instance
 const { generalLimiter } = require("./middleware/rateLimiter");
 
 // ─── Route Imports ──────────────────────────────────────────────
@@ -25,7 +25,6 @@ const contactRoutes = require("./routes/contact");
 
 // ─── Initialize ─────────────────────────────────────────────────
 const app = express();
-const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
 // ─── CORS Configuration ─────────────────────────────────────────
@@ -63,7 +62,6 @@ app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/contact", contactRoutes);
 
 // ─── Root Route ─────────────────────────────────────────────────
-// Simple response for anyone hitting the API root directly
 app.get("/", (req, res) => {
   res.json({
     name: "tzvetomir.dev API",
@@ -95,24 +93,21 @@ app.use((err, req, res, next) => {
 // ─── Start Server ───────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`
-  ╔═══════════════════════════════════════════════╗
-  ║                                               ║
-  ║   🐾  tzvetomir.dev API                       ║
-  ║   ──────────────────────────                   ║
-  ║   Port:    ${String(PORT).padEnd(36)}║
-  ║   Mode:    ${(process.env.NODE_ENV || "development").padEnd(36)}║
-  ║   Health:  http://localhost:${PORT}/api/health    ║
-  ║                                               ║
-  ║   "Nothing but green lights ahead"             ║
-  ║                                               ║
-  ╚═══════════════════════════════════════════════╝
+  ╔═══════════════════════════════════════════════════╗
+  ║                                                   ║
+  ║   🐾  tzvetomir.dev API                           ║
+  ║   ──────────────────────────                      ║
+  ║   Port:    ${String(PORT).padEnd(39)}║
+  ║   Mode:    ${(process.env.NODE_ENV || "development").padEnd(39)}║
+  ║   Health:  http://localhost:${PORT}/api/health       ║
+  ║                                                   ║
+  ║   "Nothing but green lights ahead"                ║
+  ║                                                   ║
+  ╚═══════════════════════════════════════════════════╝
   `);
 });
 
 // ─── Graceful Shutdown ──────────────────────────────────────────
-// When the server receives SIGTERM (Railway sends this on redeploy),
-// we cleanly disconnect Prisma's connection pool so no queries
-// are left hanging mid-flight.
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received — shutting down gracefully...");
   await prisma.$disconnect();
