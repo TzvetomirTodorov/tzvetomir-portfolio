@@ -278,7 +278,11 @@ Cyrillic runs through the code:
     setHistory(h => [...h, { type: "input", text: `visitor@tzvetomir.dev:~$ ${cmd}` }, { type: "output", text: output }]);
   }, [commands]);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [history]);
+  // Scroll within the terminal only — block:"nearest" prevents the
+  // entire page from jumping down to the terminal section.
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [history]);
 
   return (
     <div style={{
@@ -337,7 +341,6 @@ Cyrillic runs through the code:
               color: TEXT_PRIMARY, fontFamily: "inherit", fontSize: "inherit", caretColor: ACCENT,
             }}
             placeholder="type a command..."
-            autoFocus
           />
         </div>
       </div>
