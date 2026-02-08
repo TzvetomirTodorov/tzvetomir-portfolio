@@ -32,12 +32,11 @@ const CYAN = "#02d7f2";
 const MAGENTA = "#ff2d6b";
 
 // ─── Project URLs ───────────────────────────────────────────────
-// AUDIT FIX: Centralized project links — update these when live URLs exist
 const PROJECT_LINKS = {
-  pawstrack: "https://github.com/TzvetomirTodorov/PawsTrack",
-  constellationworks: "https://github.com/TzvetomirTodorov/ConstellationWorks",
-  holdyourown: "https://github.com/TzvetomirTodorov/HoldYourOwnBrand",
-  memoir: "https://github.com/TzvetomirTodorov/FromAshesToPaws",
+  pawstrack: "https://pawstrack.app",
+  constellationworks: "https://constellationworks.app",
+  holdyourown: "https://client-phi-tawny.vercel.app",
+  memoir: "https://incredible-heliotrope-252784.netlify.app",
   wtf: null,          // Cybersecurity ops — no public repo
   gamified: null,     // Educational platforms — no public repo
 };
