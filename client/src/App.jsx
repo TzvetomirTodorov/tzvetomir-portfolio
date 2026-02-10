@@ -24,6 +24,13 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 //    - Terminal text: Disabled Fira Code ligatures (liga/calt off) to fix box chars
 //    - About/skills/neofetch commands: Simplified box-drawing for consistent rendering
 //    - Bottom link buttons: Inherit snappier section timing
+//
+//  v3 FIXES (Aleadis feedback round 2, Feb 2026):
+//    - Terminal scroll containment: overscrollBehavior "contain" prevents
+//      terminal scrolling from pushing the whole page down
+//    - SkillOrb hover latency: Separated entrance animation (delayed
+//      cubic-bezier on opacity/transform) from hover responsiveness
+//      — hover reactions are now instant instead of waiting 0.6s+delay
 // ═══════════════════════════════════════════════════════════════════
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -313,7 +320,7 @@ Cyrillic runs through the code:
       </div>
       {/* Terminal body */}
       <div style={{
-        padding: 20, minHeight: 360, maxHeight: "55vh", overflowY: "auto",
+        padding: 20, minHeight: 360, maxHeight: "55vh", overflowY: "auto", overscrollBehavior: "contain",
         fontFamily: "'Fira Code', 'JetBrains Mono', 'Courier New', monospace",
         fontSize: 13, lineHeight: 1.6,
       }}>
@@ -693,7 +700,7 @@ function SkillOrb({ label, level, color, delay = 0, blurb = "" }) {
       style={{
         display: "flex", alignItems: "center", gap: 12, marginBottom: 8,
         opacity: visible ? 1 : 0, transform: visible ? "translateX(0)" : "translateX(-20px)",
-        transition: `all 0.6s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
+        transition: `opacity 0.6s cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 0.6s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
         position: "relative", cursor: blurb ? "help" : "default",
       }}
     >
