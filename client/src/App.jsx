@@ -16,6 +16,14 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 //    - API_URL sourced from VITE_API_URL env variable
 //    - Loading/error states added for API calls
 //    - Mobile nav hamburger menu added
+//
+//  v2 FIXES (Aleadis feedback, Feb 2026):
+//    - Terminal height: 360px fixed → minHeight 360 / maxHeight 55vh (responsive)
+//    - Section reveal animation: 0.8s cubic-bezier → 0.45s ease-out (snappier)
+//    - SkillOrb: Added hover tooltips with experience blurbs for each skill
+//    - Terminal text: Disabled Fira Code ligatures (liga/calt off) to fix box chars
+//    - About/skills/neofetch commands: Simplified box-drawing for consistent rendering
+//    - Bottom link buttons: Inherit snappier section timing
 // ═══════════════════════════════════════════════════════════════════
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -32,11 +40,12 @@ const CYAN = "#02d7f2";
 const MAGENTA = "#ff2d6b";
 
 // ─── Project URLs ───────────────────────────────────────────────
+// AUDIT FIX: Centralized project links — update these when live URLs exist
 const PROJECT_LINKS = {
-  pawstrack: "https://pawstrack.app",
-  constellationworks: "https://constellationworks.app",
-  holdyourown: "https://client-phi-tawny.vercel.app",
-  memoir: "https://incredible-heliotrope-252784.netlify.app",
+  pawstrack: "https://github.com/TzvetomirTodorov/PawsTrack",
+  constellationworks: "https://github.com/TzvetomirTodorov/ConstellationWorks",
+  holdyourown: "https://github.com/TzvetomirTodorov/HoldYourOwnBrand",
+  memoir: "https://github.com/TzvetomirTodorov/FromAshesToPaws",
   wtf: null,          // Cybersecurity ops — no public repo
   gamified: null,     // Educational platforms — no public repo
 };
@@ -140,8 +149,8 @@ function Section({ id, children, style = {} }) {
       id={id} ref={ref}
       style={{
         opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(40px)",
-        transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
+        transform: visible ? "translateY(0)" : "translateY(24px)",
+        transition: "opacity 0.45s ease-out, transform 0.45s ease-out",
         padding: "80px 0",
         ...style,
       }}
@@ -172,32 +181,29 @@ function Terminal() {
   whoami     — Current visitor info
   clear      — Clear terminal
   neofetch   — System info`,
-    about: () => `┌─────────────────────────────────────────┐
-│  TZVETOMIR TODOROV                      │
-│  Senior Full Stack Developer            │
-│  15+ years of experience                │
-│                                         │
-│  🏥 IT Consultant & SysAdmin            │
-│  📍 Troy, Michigan                      │
-│  🇧🇬 Bulgarian-American                 │
-│  ✍️  Author & Wildlife Rescuer           │
-│  🔒 Cybersecurity Investigator          │
-└─────────────────────────────────────────┘`,
-    skills: () => `╔═══════════════════════════════════════════╗
-║  TECHNICAL ARSENAL                        ║
-╠═══════════════════════════════════════════╣
-║  Frontend:  React, Vue.js, Angular, HTML  ║
-║  Backend:   Node.js, Express, Django,     ║
-║             ASP.NET, Python, Java         ║
-║  Database:  PostgreSQL, MongoDB, SQL      ║
-║  Languages: JavaScript, TypeScript,       ║
-║             Python, C++, C, Java          ║
-║  DevOps:    Railway, Vercel, Netlify      ║
-║  Security:  HIPAA, Incident Response,     ║
-║             Digital Forensics, OSINT      ║
-║  Stack:     PERN (PostgreSQL, Express,    ║
-║             React, Node.js)               ║
-╚═══════════════════════════════════════════╝`,
+    about: () => `  TZVETOMIR TODOROV
+  ──────────────────────────────────
+  Senior Full Stack Developer
+  15+ years of experience
+
+  🏥 IT Consultant & SysAdmin
+  📍 Troy, Michigan
+  🇧🇬 Bulgarian-American
+  ✍️  Author & Wildlife Rescuer
+  🔒 Cybersecurity Investigator`,
+    skills: () => `  TECHNICAL ARSENAL
+  ──────────────────────────────────
+  Frontend:  React, Vue.js, Angular, HTML
+  Backend:   Node.js, Express, Django,
+             ASP.NET, Python, Java
+  Database:  PostgreSQL, MongoDB, SQL
+  Languages: JavaScript, TypeScript,
+             Python, C++, C, Java
+  DevOps:    Railway, Vercel, Netlify
+  Security:  HIPAA, Incident Response,
+             Digital Forensics, OSINT
+  Stack:     PERN (PostgreSQL, Express,
+             React, Node.js)`,
     projects: () => `[1] PawsTrack ─── Volunteer & Animal Tracking
     PERN stack shelter management system
     
@@ -256,13 +262,13 @@ Cyrillic runs through the code:
      ██║      ██║   
      ╚═╝      ╚═╝   
   ─────────────────────
-  OS:     Developer Linux 15.0+
-  Host:   tzvetomir.dev
-  Shell:  paws-sh 2.0
-  Stack:  PERN (PostgreSQL/Express/React/Node)
-  Uptime: 15+ years
-  Memory: Full of code & stories
-  Theme:  Terminal Dark [Matrix]`,
+  OS:      Developer Linux 15.0+
+  Host:    tzvetomir.dev
+  Shell:   paws-sh 2.0
+  Stack:   PERN (PostgreSQL/Express/React/Node)
+  Uptime:  15+ years
+  Memory:  Full of code & stories
+  Theme:   Terminal Dark [Matrix]`,
   }), []);
 
   const runCommand = useCallback((cmd) => {
@@ -277,11 +283,7 @@ Cyrillic runs through the code:
     setHistory(h => [...h, { type: "input", text: `visitor@tzvetomir.dev:~$ ${cmd}` }, { type: "output", text: output }]);
   }, [commands]);
 
-  // Scroll within the terminal only — block:"nearest" prevents the
-  // entire page from jumping down to the terminal section.
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [history]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [history]);
 
   return (
     <div style={{
@@ -311,14 +313,15 @@ Cyrillic runs through the code:
       </div>
       {/* Terminal body */}
       <div style={{
-        padding: 20, height: 360, overflowY: "auto",
-        fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
+        padding: 20, minHeight: 360, maxHeight: "55vh", overflowY: "auto",
+        fontFamily: "'Fira Code', 'JetBrains Mono', 'Courier New', monospace",
         fontSize: 13, lineHeight: 1.6,
       }}>
         {history.map((line, i) => (
           <div key={i} style={{
             color: line.type === "input" ? ACCENT : line.type === "system" ? AMBER : TEXT_PRIMARY,
             whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 4,
+            fontFeatureSettings: "'liga' 0, 'calt' 0",
           }}>
             {line.text}
           </div>
@@ -340,6 +343,7 @@ Cyrillic runs through the code:
               color: TEXT_PRIMARY, fontFamily: "inherit", fontSize: "inherit", caretColor: ACCENT,
             }}
             placeholder="type a command..."
+            autoFocus
           />
         </div>
       </div>
@@ -669,9 +673,12 @@ function Guestbook() {
   );
 }
 
-// ─── Skill Bar (animated) ───────────────────────────────────────
-function SkillOrb({ label, level, color, delay = 0 }) {
+// ─── Skill Bar (animated + hover tooltip) ───────────────────────
+// FIX: Added descriptive tooltips so visitors understand what the
+// bar levels actually represent — years, context, and project usage.
+function SkillOrb({ label, level, color, delay = 0, blurb = "" }) {
   const [visible, setVisible] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold: 0.3 });
@@ -679,22 +686,56 @@ function SkillOrb({ label, level, color, delay = 0 }) {
     return () => obs.disconnect();
   }, []);
   return (
-    <div ref={ref} style={{
-      display: "flex", alignItems: "center", gap: 12, marginBottom: 8,
-      opacity: visible ? 1 : 0, transform: visible ? "translateX(0)" : "translateX(-20px)",
-      transition: `all 0.6s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
-    }}>
+    <div
+      ref={ref}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: "flex", alignItems: "center", gap: 12, marginBottom: 8,
+        opacity: visible ? 1 : 0, transform: visible ? "translateX(0)" : "translateX(-20px)",
+        transition: `all 0.6s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
+        position: "relative", cursor: blurb ? "help" : "default",
+      }}
+    >
       <span style={{ color: TEXT_MUTED, fontSize: 12, fontFamily: "'Fira Code', monospace", width: 110, textAlign: "right" }}>
         {label}
       </span>
-      <div style={{ flex: 1, height: 6, background: `${color}15`, borderRadius: 3, overflow: "hidden" }}>
-        <div style={{
-          width: visible ? `${level}%` : "0%", height: "100%",
-          background: `linear-gradient(90deg, ${color}88, ${color})`,
-          borderRadius: 3,
-          transition: `width 1.2s cubic-bezier(0.16,1,0.3,1) ${delay + 300}ms`,
-          boxShadow: `0 0 8px ${color}44`,
-        }} />
+      <div style={{ flex: 1, position: "relative" }}>
+        {/* The bar track + fill */}
+        <div style={{ height: 6, background: `${color}15`, borderRadius: 3, overflow: "hidden" }}>
+          <div style={{
+            width: visible ? `${level}%` : "0%", height: "100%",
+            background: `linear-gradient(90deg, ${color}88, ${color})`,
+            borderRadius: 3,
+            transition: `width 1.2s cubic-bezier(0.16,1,0.3,1) ${delay + 300}ms`,
+            boxShadow: `0 0 8px ${color}44`,
+          }} />
+        </div>
+        {/* Tooltip popup on hover */}
+        {blurb && hovered && (
+          <div style={{
+            position: "absolute", bottom: "calc(100% + 10px)", left: "50%",
+            transform: "translateX(-50%)", whiteSpace: "normal",
+            background: "#151b2e", border: `1px solid ${color}44`,
+            borderRadius: 6, padding: "10px 14px", width: 260,
+            boxShadow: `0 4px 24px rgba(0,0,0,0.5), 0 0 12px ${color}11`,
+            zIndex: 50, pointerEvents: "none",
+            animation: "tooltipFade 0.15s ease-out",
+          }}>
+            <div style={{ color, fontSize: 11, fontWeight: 700, fontFamily: "'Fira Code', monospace", marginBottom: 4 }}>
+              {label} — {level}%
+            </div>
+            <div style={{ color: TEXT_PRIMARY, fontSize: 11, lineHeight: 1.5, opacity: 0.85 }}>
+              {blurb}
+            </div>
+            {/* Tooltip arrow */}
+            <div style={{
+              position: "absolute", bottom: -5, left: "50%", transform: "translateX(-50%) rotate(45deg)",
+              width: 10, height: 10, background: "#151b2e",
+              borderRight: `1px solid ${color}44`, borderBottom: `1px solid ${color}44`,
+            }} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -829,6 +870,10 @@ export default function App() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-8px); }
         }
+        @keyframes tooltipFade {
+          from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
         /* AUDIT FIX: Mobile responsive nav */
         @media (max-width: 640px) {
           .nav-desktop { display: none !important; }
@@ -944,16 +989,26 @@ export default function App() {
               <div style={{ color: CYAN, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
                 {">"} cat skills.log
               </div>
-              <SkillOrb label="React/Vue" level={95} color={CYAN} delay={0} />
-              <SkillOrb label="Node/Express" level={93} color={ACCENT} delay={80} />
-              <SkillOrb label="PostgreSQL" level={90} color={AMBER} delay={160} />
-              <SkillOrb label="Python" level={88} color={MAGENTA} delay={240} />
-              <SkillOrb label="C++/C" level={82} color={CYAN} delay={320} />
-              <SkillOrb label="TypeScript" level={90} color={ACCENT} delay={400} />
-              <SkillOrb label="DevOps" level={85} color={AMBER} delay={480} />
-              <SkillOrb label="Security" level={87} color={MAGENTA} delay={560} />
-              <SkillOrb label="ASP.NET" level={80} color={CYAN} delay={640} />
-              <SkillOrb label="HIPAA/IT" level={88} color={ACCENT} delay={720} />
+              <SkillOrb label="React/Vue" level={95} color={CYAN} delay={0}
+                blurb="Primary frontend framework for 8+ years. Built PawsTrack, ConstellationWorks, HoldYourOwn, and this portfolio. Vue on select projects." />
+              <SkillOrb label="Node/Express" level={93} color={ACCENT} delay={80}
+                blurb="Backend workhorse across every PERN project. REST APIs, middleware chains, auth flows, and real-time features." />
+              <SkillOrb label="PostgreSQL" level={90} color={AMBER} delay={160}
+                blurb="Go-to relational DB. Schema design, Prisma ORM, complex queries, migrations, and production tuning across all PERN apps." />
+              <SkillOrb label="Python" level={88} color={MAGENTA} delay={240}
+                blurb="OSINT automation, digital forensics tooling, scripting, data processing. Used heavily in the WTF Response Team investigation." />
+              <SkillOrb label="C++/C" level={82} color={CYAN} delay={320}
+                blurb="Systems-level work and university foundation. Lower-level performance-critical projects and embedded concepts." />
+              <SkillOrb label="TypeScript" level={90} color={ACCENT} delay={400}
+                blurb="Strict typing on all new projects. Full-stack TS with React + Express for type safety across the wire." />
+              <SkillOrb label="DevOps" level={85} color={AMBER} delay={480}
+                blurb="Railway, Vercel, Netlify deployments. CI/CD pipelines, DNS management, SSL, environment configs, and container basics." />
+              <SkillOrb label="Security" level={87} color={MAGENTA} delay={560}
+                blurb="OSINT, digital forensics, incident response. Led multi-victim cybercrime investigation with FBI IC3 reporting." />
+              <SkillOrb label="ASP.NET" level={80} color={CYAN} delay={640}
+                blurb="Enterprise C# development. MVC patterns, Entity Framework, and legacy system maintenance in professional settings." />
+              <SkillOrb label="HIPAA/IT" level={88} color={ACCENT} delay={720}
+                blurb="Healthcare IT admin at Platinum Surgery Center. M365 tenant recovery, EHR platform evaluation, compliance auditing." />
             </div>
           </div>
         </div>
