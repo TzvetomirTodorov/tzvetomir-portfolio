@@ -79,7 +79,6 @@ function LoginScreen({ onLogin }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -175,29 +174,14 @@ function LoginScreen({ onLogin }) {
             <label style={{ color: TEXT_MUTED, fontSize: 11, display: "block", marginBottom: 4 }}>
               Password
             </label>
-            <div style={{ position: "relative" }}>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ ...inputStyle, paddingRight: 44 }}
-                placeholder="••••••••••••"
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-                  background: "none", border: "none", cursor: "pointer",
-                  color: showPassword ? ACCENT : TEXT_MUTED,
-                  fontFamily: FONT, fontSize: 11, padding: "4px 6px",
-                  transition: "color 0.15s ease",
-                }}
-              >
-                {showPassword ? "HIDE" : "SHOW"}
-              </button>
-            </div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={inputStyle}
+              placeholder="••••••••••••"
+              autoComplete="current-password"
+            />
           </div>
           <button
             type="submit"
